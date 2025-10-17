@@ -3,21 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to HTML Converter</title>
+    <title>Markdown Viewer with Tabs</title>
     <!-- Highlight.js CSS theme -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
     <style>
         body { font-family: sans-serif; margin: 20px; line-height: 1.6; background-color: #f0f2f5; color: #333; }
-        #markdown-output {
+        #container {
             max-width: 800px;
             margin: 20px auto;
-            padding: 30px;
             border: 1px solid #ddd;
             border-radius: 8px;
             background-color: #fff;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
-        /* Basic styling for code blocks if not overridden by highlight.js theme */
+        #markdown-tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            background-color: #f9f9f9;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            overflow: hidden; /* Ensures rounded corners apply correctly to buttons inside */
+        }
+        #markdown-tabs button {
+            flex: 1; /* Make buttons take equal width */
+            padding: 10px 15px;
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            color: #555;
+            outline: none;
+            transition: background-color 0.3s ease, color 0.3s ease, border-bottom 0.3s ease;
+            border-bottom: 2px solid transparent; /* For active state indicator */
+        }
+        #markdown-tabs button:first-child {
+            border-top-left-radius: 8px;
+        }
+        #markdown-tabs button:last-child {
+            border-top-right-radius: 8px;
+        }
+        #markdown-tabs button:hover {
+            background-color: #eee;
+        }
+        #markdown-tabs button.active {
+            background-color: #fff;
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            font-weight: bold;
+        }
+        .tab-content {
+            padding: 30px;
+        }
+        #markdown-source {
+            white-space: pre-wrap; /* Preserve whitespace and allow wrapping */
+            word-wrap: break-word; /* Break long words */
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #f4f4f4;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            overflow-x: auto;
+            max-height: 70vh; /* Limit height and allow scrolling */
+            padding-top: 15px; /* Adjust padding for pre element */
+            padding-bottom: 15px;
+        }
+        /* Utility class to hide elements */
+        .hidden {
+            display: none;
+        }
+        /* Existing styling for code blocks if not overridden by highlight.js theme */
         pre {
             background-color: #f4f4f4;
             padding: 15px;
@@ -42,8 +95,15 @@
     </style>
 </head>
 <body>
-    <div id="markdown-output">
-        <p>Loading Markdown...</p>
+    <div id="container">
+        <div id="markdown-tabs">
+            <button id="html-tab" class="active">HTML</button>
+            <button id="source-tab">Source</button>
+        </div>
+        <div id="markdown-output" class="tab-content">
+            <p>Loading Markdown...</p>
+        </div>
+        <pre id="markdown-source" class="tab-content hidden"></pre>
     </div>
 
     <!-- Load marked.js library -->
@@ -53,6 +113,37 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const htmlTabButton = document.getElementById('html-tab');
+            const sourceTabButton = document.getElementById('source-tab');
+            const markdownOutputDiv = document.getElementById('markdown-output');
+            const markdownSourcePre = document.getElementById('markdown-source');
+
+            let rawMarkdownContent = ''; // Store the raw markdown content
+
+            // Function to show a specific tab
+            function showTab(tabName) {
+                // Deactivate all tabs and hide all content
+                htmlTabButton.classList.remove('active');
+                sourceTabButton.classList.remove('active');
+                markdownOutputDiv.classList.add('hidden');
+                markdownSourcePre.classList.add('hidden');
+
+                // Activate the selected tab and show its content
+                if (tabName === 'html') {
+                    htmlTabButton.classList.add('active');
+                    markdownOutputDiv.classList.remove('hidden');
+                    // Re-highlight if HTML tab is shown, in case content changed or for initial load
+                    hljs.highlightAll(); 
+                } else if (tabName === 'source') {
+                    sourceTabButton.classList.add('active');
+                    markdownSourcePre.classList.remove('hidden');
+                }
+            }
+
+            // Event Listeners for tabs
+            htmlTabButton.addEventListener('click', () => showTab('html'));
+            sourceTabButton.addEventListener('click', () => showTab('source'));
+
             fetch('input.md')
                 .then(response => {
                     if (!response.ok) {
@@ -61,25 +152,22 @@
                     return response.text();
                 })
                 .then(markdownContent => {
-                    // Configure marked.js to work well with highlight.js
-                    // marked.setOptions({
-                    //     highlight: function(code, lang) {
-                    //         const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                    //         return hljs.highlight(code, { language }).value;
-                    //     },
-                    //     langPrefix: 'hljs language-'
-                    // });
+                    rawMarkdownContent = markdownContent; // Save raw content
 
                     // Convert Markdown to HTML using marked.js
-                    const htmlContent = marked.parse(markdownContent);
-                    document.getElementById('markdown-output').innerHTML = htmlContent;
+                    const htmlContent = marked.parse(rawMarkdownContent);
+                    markdownOutputDiv.innerHTML = htmlContent;
 
-                    // After rendering, highlight code blocks
-                    hljs.highlightAll();
+                    // Populate the source view
+                    markdownSourcePre.textContent = rawMarkdownContent;
+
+                    // Initially show the HTML tab
+                    showTab('html'); 
                 })
                 .catch(error => {
                     console.error('Error loading or rendering markdown:', error);
-                    document.getElementById('markdown-output').innerHTML = `<p style="color: red;">Failed to load or render markdown: ${error.message}</p>`;
+                    markdownOutputDiv.innerHTML = `<p style="color: red;">Failed to load or render markdown: ${error.message}</p>`;
+                    markdownSourcePre.textContent = `Failed to load markdown: ${error.message}`; // Also show error in source view
                 });
         });
     </script>
