@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to HTML Converter</title>
+    <!-- Highlight.js CSS theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; background-color: #f0f2f5; color: #333; }
+        #markdown-output {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        /* Basic styling for code blocks if not overridden by highlight.js theme */
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 1em;
+        }
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #e8e8e8;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        h1, h2, h3, h4, h5, h6 { color: #2c3e50; margin-top: 1.5em; margin-bottom: 0.5em; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        ul, ol { margin-bottom: 1em; padding-left: 25px; }
+    </style>
+</head>
+<body>
+    <div id="markdown-output">
+        <p>Loading Markdown...</p>
+    </div>
+
+    <!-- Load marked.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Load highlight.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('input.md')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(markdownContent => {
+                    // Configure marked.js to work well with highlight.js
+                    // marked.setOptions({
+                    //     highlight: function(code, lang) {
+                    //         const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    //         return hljs.highlight(code, { language }).value;
+                    //     },
+                    //     langPrefix: 'hljs language-'
+                    // });
+
+                    // Convert Markdown to HTML using marked.js
+                    const htmlContent = marked.parse(markdownContent);
+                    document.getElementById('markdown-output').innerHTML = htmlContent;
+
+                    // After rendering, highlight code blocks
+                    hljs.highlightAll();
+                })
+                .catch(error => {
+                    console.error('Error loading or rendering markdown:', error);
+                    document.getElementById('markdown-output').innerHTML = `<p style="color: red;">Failed to load or render markdown: ${error.message}</p>`;
+                });
+        });
+    </script>
+</body>
+</html>
